@@ -1,138 +1,152 @@
 'use client';
-import { Package, Plus, Search, Filter, Edit, Trash2, MoreVertical, AlertTriangle } from 'lucide-react';
+
+import { useState, useEffect } from 'react';
+import { Package, Plus, Edit, Trash2, AlertTriangle, Loader2, RefreshCcw } from 'lucide-react';
+
+// 1. KHAI BÁO KIỂU DỮ LIỆU (Để hết bị gạch đỏ ở các biến p.xxx)
+interface Product {
+  product_id: number;
+  product_name: string;
+  selling_price: number;
+  stock_quantity: number;
+}
 
 export default function ProductsPage() {
-  // Dữ liệu mẫu mô phỏng Database (Bảng Product + Unit trong ERD)
-  const products = [
-    { id: 1, code: 'VL001', name: 'Xi măng Hà Tiên', category: 'Vật liệu thô', price: 90000, stock: 15, unit: 'Bao', status: 'Sắp hết' },
-    { id: 2, code: 'VL002', name: 'Cát xây dựng', category: 'Vật liệu thô', price: 350000, stock: 100, unit: 'Khối', status: 'Còn hàng' },
-    { id: 3, code: 'ST001', name: 'Sơn Dulux Trong Nhà', category: 'Sơn nước', price: 1200000, stock: 24, unit: 'Thùng (18L)', status: 'Còn hàng' },
-    { id: 4, code: 'ST002', name: 'Thép Pomina Phi 10', category: 'Sắt thép', price: 115000, stock: 200, unit: 'Cây', status: 'Còn hàng' },
-    { id: 5, code: 'D001', name: 'Bóng đèn Rạng Đông 40W', category: 'Điện', price: 45000, stock: 0, unit: 'Cái', status: 'Hết hàng' },
-  ];
+  // 2. ĐỊNH NGHĨA STATE VỚI KIỂU DỮ LIỆU CHUẨN
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 3. HÀM GỌI API (Dùng 127.0.0.1 cho ổn định)
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('http://127.0.0.1:9999/products/owner/1');
+      
+      if (!response.ok) {
+        throw new Error('Server đang bận hoặc chưa bật Backend.');
+      }
+      
+      const result = await response.json();
+      
+      if (result.status === 'success' && result.data) {
+        setProducts(result.data);
+      } else {
+        setProducts([]);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Lỗi kết nối tới Server.');
+      console.error("Lỗi Fetch:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* 1. HEADER & THANH CÔNG CỤ */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+    <div className="space-y-6 p-4 md:p-8 animate-in fade-in duration-500">
+      {/* HEADER */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-             <Package className="text-indigo-600"/> Kho hàng & Sản phẩm
+           <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+             <div className="p-2 bg-indigo-50 rounded-xl">
+               <Package className="text-indigo-600" size={24}/>
+             </div>
+             Kho hàng & Sản phẩm
            </h2>
-           <p className="text-xs text-gray-500 mt-1">Quản lý danh mục, giá bán và định mức tồn kho.</p>
+           <p className="text-sm text-slate-400 mt-1 ml-11">Dữ liệu từ Database SQL Server (Port 9999)</p>
         </div>
         
         <div className="flex gap-3 w-full md:w-auto">
-           {/* Ô tìm kiếm */}
-           <div className="relative flex-1 md:flex-none group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500" size={16} />
-              <input 
-                type="text" 
-                placeholder="Tìm mã, tên SP..." 
-                className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 w-full md:w-64 transition-all"
-              />
-           </div>
-           
-           {/* Nút bộ lọc */}
-           <button className="px-3 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
-              <Filter size={18}/>
+           <button 
+             onClick={fetchProducts}
+             className="flex-1 md:flex-none px-5 py-2.5 border border-slate-200 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+           >
+             <RefreshCcw size={16} className={isLoading ? 'animate-spin' : ''}/>
+             Làm mới
            </button>
-
-           {/* Nút thêm mới */}
-           <button className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center gap-2">
-             <Plus size={18}/> Thêm sản phẩm
+           <button className="flex-1 md:flex-none px-6 py-2.5 bg-indigo-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
+             <Plus size={18}/> Thêm mới
            </button>
         </div>
       </div>
 
-      {/* 2. BẢNG DANH SÁCH SẢN PHẨM */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs tracking-wider">
-                <tr>
-                  <th className="p-4">Mã SP</th>
-                  <th className="p-4">Tên Sản phẩm</th>
-                  <th className="p-4">Danh mục</th>
-                  <th className="p-4 text-right">Giá bán</th>
-                  <th className="p-4 text-center">Tồn kho</th>
-                  <th className="p-4 text-center">Trạng thái</th>
-                  <th className="p-4 text-center">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {products.map((p) => (
-                  <tr key={p.id} className="hover:bg-indigo-50/30 transition-colors group">
-                    <td className="p-4 font-mono text-gray-500 font-medium">{p.code}</td>
-                    
-                    <td className="p-4">
-                        <p className="font-bold text-gray-800">{p.name}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Đơn vị tính: <b className="text-gray-600">{p.unit}</b></p>
-                    </td>
-                    
-                    <td className="p-4">
-                      <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-600 border border-gray-200">
-                        {p.category}
-                      </span>
-                    </td>
-                    
-                    <td className="p-4 text-right font-bold text-indigo-600 text-base">
-                        {p.price.toLocaleString()}đ
-                    </td>
-                    
-                    <td className="p-4 text-center font-bold text-gray-700">
-                       {p.stock}
-                    </td>
-
-                    <td className="p-4 text-center">
-                       {p.stock === 0 ? (
-                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 uppercase">
-                               Hết hàng
-                           </span>
-                       ) : p.stock < 20 ? (
-                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase">
-                               <AlertTriangle size={10}/> Sắp hết
-                           </span>
-                       ) : (
-                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-600 uppercase">
-                               Sẵn sàng
-                           </span>
-                       )}
-                    </td>
-
-                    <td className="p-4">
-                       <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                           <button className="p-2 bg-white border border-gray-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="Sửa">
-                               <Edit size={16}/>
-                           </button>
-                           <button className="p-2 bg-white border border-gray-200 text-red-500 rounded-lg hover:bg-red-50 transition-colors" title="Xóa">
-                               <Trash2 size={16}/>
-                           </button>
-                       </div>
-                    </td>
+      {/* HIỂN THỊ TRẠNG THÁI TẢI/LỖI */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center p-32 bg-white rounded-[2rem] border border-slate-50 shadow-sm">
+          <Loader2 className="animate-spin text-indigo-600 mb-4" size={40} />
+          <p className="text-slate-400 font-medium animate-pulse">Đang đồng bộ dữ liệu...</p>
+        </div>
+      ) : error ? (
+        <div className="p-16 bg-rose-50 text-rose-600 rounded-[2rem] border border-rose-100 text-center shadow-sm">
+          <div className="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle size={32} />
+          </div>
+          <p className="font-bold text-lg mb-1">Kết nối thất bại!</p>
+          <p className="text-sm opacity-80">{error}</p>
+          <button onClick={fetchProducts} className="mt-6 px-6 py-2 bg-rose-600 text-white rounded-xl text-sm font-bold">Thử lại ngay</button>
+        </div>
+      ) : (
+        /* BẢNG DANH SÁCH SẢN PHẨM */
+        <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50/50 text-slate-500 font-bold uppercase text-[11px] tracking-widest">
+                  <tr>
+                    <th className="p-5">Mã SP</th>
+                    <th className="p-5">Tên Sản phẩm</th>
+                    <th className="p-5 text-right">Giá bán</th>
+                    <th className="p-5 text-center">Tồn kho</th>
+                    <th className="p-5 text-center">Trạng thái</th>
+                    <th className="p-5 text-center">Thao tác</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {products.length > 0 ? products.map((p) => (
+                    <tr key={p.product_id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="p-5 font-mono text-slate-400">#{p.product_id}</td>
+                      <td className="p-5 font-bold text-slate-700">{p.product_name}</td>
+                      <td className="p-5 text-right font-black text-indigo-600 text-base">
+                          {p.selling_price?.toLocaleString()}đ
+                      </td>
+                      <td className="p-5 text-center font-bold text-slate-600">
+                         {p.stock_quantity}
+                      </td>
+                      <td className="p-5 text-center">
+                         {p.stock_quantity <= 0 ? (
+                             <span className="px-3 py-1.5 rounded-xl text-[10px] font-black bg-slate-100 text-slate-500 uppercase">Hết hàng</span>
+                         ) : p.stock_quantity < 10 ? (
+                             <span className="px-3 py-1.5 rounded-xl text-[10px] font-black bg-amber-100 text-amber-600 uppercase flex items-center justify-center gap-1">
+                               <AlertTriangle size={10}/> Sắp hết
+                             </span>
+                         ) : (
+                             <span className="px-3 py-1.5 rounded-xl text-[10px] font-black bg-emerald-100 text-emerald-600 uppercase">Sẵn sàng</span>
+                         )}
+                      </td>
+                      <td className="p-5">
+                         <div className="flex justify-center gap-2">
+                             <button className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><Edit size={18}/></button>
+                             <button className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={18}/></button>
+                         </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={6} className="p-32 text-center text-slate-400 font-medium">
+                        <Package className="mx-auto mb-2 opacity-20" size={48}/>
+                        Chưa có sản phẩm nào gán cho chủ sở hữu này.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+          </div>
         </div>
-        
-        {/* Footer phân trang (UI giả lập) */}
-        <div className="p-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400">
-            <span>Hiển thị 5 / 124 sản phẩm</span>
-            <div className="flex gap-2">
-                <button className="px-3 py-1 border rounded hover:bg-gray-50">Trước</button>
-                <button className="px-3 py-1 bg-indigo-600 text-white rounded">1</button>
-                <button className="px-3 py-1 border rounded hover:bg-gray-50">2</button>
-                <button className="px-3 py-1 border rounded hover:bg-gray-50">3</button>
-                <button className="px-3 py-1 border rounded hover:bg-gray-50">Sau</button>
-            </div>
-        </div>
-      </div>
-      
-      <style jsx>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
-      `}</style>
+      )}
     </div>
   );
 }
