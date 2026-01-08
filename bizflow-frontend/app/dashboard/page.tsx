@@ -1,147 +1,151 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-// QUAN TRỌNG: Đã thêm 'Shield' vào dòng import dưới đây
-import { 
-  TrendingUp, Users, Package, AlertCircle, 
-  ArrowRight, DollarSign, Wallet, Shield 
-} from 'lucide-react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Shield, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 
-export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null);
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Gọi đến Backend Flask của cậu
+      const response = await fetch('http://127.0.0.1:9999/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Đã sửa thành 'username' để khớp 100% với AuthService.py của cậu
+        body: JSON.stringify({ 
+          username: email, 
+          password: password 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // 1. Lưu Token để dùng cho các yêu cầu sau
+        localStorage.setItem('token', data.token);
+        
+        // 2. Lưu Object 'user' (chứa role và name) để Dashboard hiển thị
+        // Lưu ý: Backend cần trả về đúng cấu trúc { "user": { "role": "...", "name": "..." } }
+        localStorage.setItem('user', JSON.stringify(data.user)); 
+        
+        // 3. Chuyển hướng sang trang Dashboard
+        router.push('/dashboard');
+      } else {
+        // Hiển thị lỗi từ Backend hoặc lỗi mặc định
+        setError(data.error || 'Tài khoản hoặc mật khẩu không chính xác');
+      }
+    } catch (err) {
+      console.error("Lỗi kết nối:", err);
+      setError('Không thể kết nối đến máy chủ. Hãy đảm bảo Backend (9999) đang chạy.');
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
-
-  if (!user) return <div>Đang tải...</div>;
+  };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      
-      {/* HEADER: CHỈ HIỆN CHO ADMIN / OWNER */}
-      {user.role === 'owner' && (
-        <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold mb-1">Tổng quan doanh thu hôm nay</h2>
-            <p className="text-indigo-200 text-sm">Cập nhật lúc: {new Date().toLocaleTimeString('vi-VN')}</p>
-          </div>
-          <div className="text-right">
-             <h3 className="text-4xl font-bold">4.200.000đ</h3>
-             <p className="text-sm font-medium bg-indigo-500/50 px-2 py-1 rounded inline-block mt-1">
-               +15% so với hôm qua
-             </p>
-          </div>
-        </div>
-      )}
-
-      {/* HEADER: CHỈ HIỆN CHO NHÂN VIÊN */}
-      {user.role === 'employee' && (
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between">
-          <div>
-             <h2 className="text-2xl font-bold">Xin chào, {user.name}! 👋</h2>
-             <p className="text-purple-100">Chúc bạn một ca làm việc hiệu quả.</p>
-          </div>
-          <button className="bg-white text-purple-600 px-4 py-2 rounded-xl font-bold shadow-md hover:bg-gray-50 transition-colors">
-             Vào bán hàng ngay
-          </button>
-        </div>
-      )}
-
-      {/* CÁC THẺ THỐNG KÊ (STAT CARDS) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Đơn hàng mới" 
-          value="12" 
-          icon={<TrendingUp size={24} className="text-white"/>} 
-          bg="bg-blue-500" 
-        />
-        <StatCard 
-          title="Khách hàng nợ" 
-          value="5" 
-          sub="Cần thu: 12.5tr"
-          icon={<Users size={24} className="text-white"/>} 
-          bg="bg-orange-500" 
-        />
-        <StatCard 
-          title="Sản phẩm sắp hết" 
-          value="3" 
-          sub="Nhập kho ngay"
-          icon={<Package size={24} className="text-white"/>} 
-          bg="bg-red-500" 
-        />
-        <StatCard 
-          title="Hệ thống" 
-          value="Ổn định" 
-          icon={<Shield size={24} className="text-white"/>} 
-          bg="bg-green-500" 
-        />
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Hiệu ứng đốm màu chuyển động phía sau */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
 
-      {/* DANH SÁCH CẦN CHÚ Ý */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         {/* Cột trái: Thông báo */}
-         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <AlertCircle size={20} className="text-orange-500"/> Cần chú ý gấp
-            </h3>
-            <div className="space-y-3">
-               <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100">
-                  <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                  <p className="text-sm text-gray-700 flex-1">Khách hàng <b>Nguyễn Văn A</b> quá hạn nợ 30 ngày.</p>
-                  <ArrowRight size={16} className="text-orange-400"/>
-               </div>
-               <div className="flex items-center gap-3 p-3 bg-red-50 rounded-xl border border-red-100">
-                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                  <p className="text-sm text-gray-700 flex-1">Sản phẩm <b>Xi măng Hà Tiên</b> chỉ còn 5 bao.</p>
-                  <ArrowRight size={16} className="text-red-400"/>
-               </div>
-            </div>
-         </div>
+      <div className="relative w-full max-w-[420px] bg-white/90 backdrop-blur-xl rounded-[32px] shadow-2xl p-10 border border-white/20">
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-indigo-200 rotate-3 hover:rotate-0 transition-transform duration-300">
+            <Shield className="text-white" size={40} />
+          </div>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            BizFlow
+          </h1>
+          <p className="text-gray-500 text-sm font-medium mt-2">Nền tảng quản lý hộ kinh doanh thông minh</p>
+        </div>
 
-         {/* Cột phải: Doanh thu nhanh (Chỉ Admin thấy) */}
-         {user.role === 'owner' && (
-           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Wallet size={20} className="text-green-600"/> Dòng tiền mặt
-              </h3>
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mb-3">
-                 <span className="text-gray-500 text-sm">Tiền mặt tại quầy</span>
-                 <span className="font-bold text-gray-800">15.200.000đ</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                 <span className="text-gray-500 text-sm">Tiền trong tài khoản</span>
-                 <span className="font-bold text-gray-800">120.500.000đ</span>
-              </div>
-           </div>
-         )}
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Tài khoản / Email</label>
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+              <input
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-gray-50/50 border-2 border-gray-100 rounded-2xl py-4 pl-12 pr-4 text-gray-900 focus:bg-white focus:border-indigo-500 outline-none transition-all font-medium"
+                placeholder="admin@bizflow.vn"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center ml-1">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Mật khẩu</label>
+              <button type="button" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors">Quên mật khẩu?</button>
+            </div>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-gray-50/50 border-2 border-gray-100 rounded-2xl py-4 pl-12 pr-4 text-gray-900 focus:bg-white focus:border-indigo-500 outline-none transition-all font-medium"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 text-sm font-semibold p-4 rounded-2xl border border-red-100 flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+              <div className="w-1 h-1 rounded-full bg-red-600"></div>
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-3 group"
+          >
+            {isLoading ? (
+              <Loader2 className="animate-spin" size={22} />
+            ) : (
+              <>
+                <span>Đăng nhập hệ thống</span>
+                <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+              </>
+            )}
+          </button>
+        </form>
+
+        <p className="mt-8 text-center text-gray-400 text-xs">
+          © 2026 BizFlow Platform. All rights reserved.
+        </p>
       </div>
 
       <style jsx>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
       `}</style>
-    </div>
-  );
-}
-
-// Component thẻ con
-function StatCard({ title, value, sub, icon, bg }: any) {
-  return (
-    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${bg}`}>
-          {icon}
-        </div>
-        {sub && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full">{sub}</span>}
-      </div>
-      <div>
-        <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">{title}</p>
-        <h3 className="text-2xl font-black text-gray-800 mt-1">{value}</h3>
-      </div>
     </div>
   );
 }
